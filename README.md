@@ -18,7 +18,7 @@ Este proyecto automatiza la extracción de cuotas de apuestas deportivas directa
 
 ### 2. Google Apps Script
 1. En tu hoja de cálculo, ve a **Extensiones > Apps Script**.
-2. Pega el contenido de `Código.gs`.
+2. Pega el contenido de `codigo-gas.gs`.
 3. Sustituye el ID del script por el tuyo en la línea:
    `const ss = SpreadsheetApp.openById('TU_ID_AQUI');`
 4. Haz clic en **Desplegar > Nueva implementación**.
