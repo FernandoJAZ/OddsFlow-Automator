@@ -3,7 +3,7 @@ function doPost(e) {
 
   try {
     const dataArray = JSON.parse(e.postData.contents);
-    const ss = SpreadsheetApp.openById('ESCRIBE_AQUI_TU_ID_DE_LA_HOJA_DE_CALCULO');
+    const ss = SpreadsheetApp.openById('ID_HOJA_DE_CALCULO_GOOGLE_SHEETS');
     
     const registros = Array.isArray(dataArray) ? dataArray : [dataArray];
     if (registros.length === 0) return ContentService.createTextOutput("Empty data");
@@ -12,38 +12,42 @@ function doPost(e) {
     let sheet = ss.getSheetByName(nombrePestana);
     if (!sheet) sheet = ss.getSheetByName('NoPartido');
 
-    // --- LÓGICA DE PRECISIÓN PARA LA COLUMNA A ---
+    // --- LÓGICA DE PRECISIÓN ABSOLUTA ---
     
-    // Obtenemos todos los valores de la columna A para encontrar el final real
-    const valoresA = sheet.getRange("A:A").getValues();
-    let ultimaFilaConDatos = 0;
+    // Traemos los datos de la columna A hasta la última fila que TENGA ALGO (incluso fórmulas)
+    const valoresA = sheet.getRange(1, 1, sheet.getMaxRows(), 1).getValues();
+    let ultimaFilaReal = 0;
 
-    // Recorremos de abajo hacia arriba para encontrar la última celda con contenido en A
-    for (let i = valoresA.length - 1; i >= 0; i--) {
-      if (valoresA[i][0] !== "" && valoresA[i][0] !== null) {
-        ultimaFilaConDatos = i + 1;
+    // Buscamos de arriba a abajo la primera celda REALMENTE vacía en la columna A
+    // Usamos un bucle simple para encontrar el primer hueco
+    for (let i = 0; i < valoresA.length; i++) {
+      if (valoresA[i][0] === "" || valoresA[i][0] === null || valoresA[i][0] === undefined) {
+        ultimaFilaReal = i; // Encontramos el índice del primer hueco
         break;
       }
     }
+    
+    // Si no encontró huecos (hoja llena), se va al final
+    if (ultimaFilaReal === 0 && valoresA[0][0] !== "") {
+        ultimaFilaReal = valoresA.length;
+    }
 
-    // La escritura empezará justo en la fila siguiente
-    const filaInicio = ultimaFilaConDatos + 1;
+    const filaInicio = ultimaFilaReal + 1;
 
-    // Preparamos el bloque de datos (Columnas A hasta G)
     const bloqueParaEscribir = registros.map(reg => [
-      new Date(),         // A: Timestamp
-      reg.partido || '',  // B
-      reg.casa || '',     // C
-      reg.cuota1 || '',   // D
-      reg.cuotaX || '',   // E
-      reg.cuota2 || '',   // F
-      reg.payout || ''    // G
+      new Date(),         
+      reg.partido || '',  
+      reg.casa || '',     
+      reg.cuota1 || '',   
+      reg.cuotaX || '',   
+      reg.cuota2 || '',   
+      reg.payout || ''    
     ]);
 
-    // Escribimos el bloque: (Fila inicio, Columna 1, Número de filas, 7 columnas)
+    // FORZAMOS la escritura en el hueco encontrado
     sheet.getRange(filaInicio, 1, bloqueParaEscribir.length, 7).setValues(bloqueParaEscribir);
 
-    return ContentService.createTextOutput("OK - Escritas " + registros.length + " filas desde la fila " + filaInicio)
+    return ContentService.createTextOutput("OK - Escrito en fila " + filaInicio)
       .setMimeType(ContentService.MimeType.TEXT)
       .setHeader("Access-Control-Allow-Origin", "*");
 
